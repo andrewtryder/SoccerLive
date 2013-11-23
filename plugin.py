@@ -549,13 +549,13 @@ class SoccerLive(callbacks.Plugin):
         if self.nextcheck:
             utcnow = self._utcnow()
             if self.nextcheck > utcnow:  # in the future.
+                self.log.info("checksoccer: nextcheck is in {0}s.".format(self.nextcheck-utcnow))
                 return
             else:  # in the past so lets reset it and continue.
                 self.nextcheck = None
         # if it's our first run, or the initial run yielded None, we try again.
         if not self.games:
             self.games = self._fetchgames()
-
         # last chance. bail otherwise and wait until nexttime.
         if not self.games:
             self.log.error("checksoccer: missing self.games. bailing.")
@@ -618,8 +618,6 @@ class SoccerLive(callbacks.Plugin):
                     # GAME GOES TO HT.
                     if ((v['statustext'] != games2[k]['statustext']) and (games2[k]['statustext'] == 'HT')):
                         self.log.info("Should be firing HT in {0}".format(k))
-                        self.log.info("OLD: {0}".format(v))
-                        self.log.info("NEW: {0}".format(games2[k]))
                         # grab HT event and print.
                         mstr = self._ht(games2[k])
                         #self._post(irc, v['league'], mstr)
@@ -630,8 +628,6 @@ class SoccerLive(callbacks.Plugin):
                     # GAME RESUMES FROM HT.
                     if ((v['statustext'] != games2[k]['statustext']) and (v['statustext'] == 'HT')):
                         self.log.info("Should be firing 2H kickoff from {0}".format(k))
-                        self.log.info("OLD: {0}".format(v))
-                        self.log.info("NEW: {0}".format(games2[k]))
                         # grab 2H KICKOFF event and print.
                         mstr = self._kickoff2(games2[k])
                         #self._post(irc, v['league'], mstr)
