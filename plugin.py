@@ -56,7 +56,10 @@ class SoccerLive(callbacks.Plugin):
             try:
                 self.checksoccer(irc)
             except Exception, e:
+                import traceback
+                traceback.print_exc(e)
                 self.log.error("cron: ERROR :: {0}".format(e))
+                #self.log.error("traceback: {0}".format(tb))
                 self.nextcheck = self._utcnow()+72000
         try:  # setup crontab below.
             schedule.addPeriodicEvent(checksoccercron, self.registryValue('checkInterval'), now=True, name='checksoccer')
@@ -79,13 +82,13 @@ class SoccerLive(callbacks.Plugin):
     ######################
 
     def _httpget(self, url):
-        """General HTTP resource fetcher. Pass headers via h, data via d, and to log via l."""
+        """General HTTP resource fetcher."""
 
         try:
             headers = {"User-Agent":"Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:17.0) Gecko/20100101 Firefox/17.0"}
             page = utils.web.getUrl(url, headers=headers)
             return page
-        except utils.web.Error as e:
+        except Exception, e:
             self.log.error("ERROR: opening {0} message: {1}".format(url, e))
             return None
 
@@ -347,6 +350,7 @@ class SoccerLive(callbacks.Plugin):
                 self.log.error("ERROR: _gameevent: no scoring events found in {0}".format(gid))
                 return None
             else:  # we found something. figure out the team and goal.
+                # warning: if golnum is NOT found, it will throw a list index error (fine)
                 hora = goals[golnum].get('side')  # figure out the side. (home or away)
                 goalteam = self._ec(tree.find(hora).text)  # translate the side into the team name.
                 goaltext = self._ec(goals[golnum].find('result').text)  # grab goaltext. cleanup and encode.
@@ -500,25 +504,6 @@ class SoccerLive(callbacks.Plugin):
         mstr = "{0} {1} - {2} {3}".format(ev['hometeam'], ev['homescore'], ev['awayscore'], ev['awayteam'])
         return mstr
 
-    ################
-    # MAIN COMMAND #
-    ################
-
-    def soccercheck(self, irc, msg, args):
-        """
-        Debug.
-        """
-
-        irc.reply("NEXTCHECK: {0}".format(self.nextcheck))
-
-        for (k, v) in self.games.items():
-            irc.reply("{0} :: {1}".format(k, v))
-        irc.reply("DUPEDICT {0}".format(len(self.dupedict)))
-        for (k, v) in self.dupedict.items():
-            irc.reply("{0} :: {1}".format(k, v))
-
-    soccercheck = wrap(soccercheck)
-
     ###################
     # DUPEDICT SYSTEM #
     ###################
@@ -536,6 +521,25 @@ class SoccerLive(callbacks.Plugin):
         else:  # channel is not present in dupedict. something went wrong.
             self.log.info("_dupedict: {0} not in dupedict. I tried to print: {1}".format(k, m))
             return False
+
+    ################
+    # MAIN COMMAND #
+    ################
+
+    #def soccercheck(self, irc, msg, args):
+    #    """
+    #    Debug.
+    #    """
+    #
+    #    irc.reply("NEXTCHECK: {0}".format(self.nextcheck))
+    #
+    #    for (k, v) in self.games.items():
+    #        irc.reply("{0} :: {1}".format(k, v))
+    #    irc.reply("DUPEDICT {0}".format(len(self.dupedict)))
+    #    for (k, v) in self.dupedict.items():
+    #        irc.reply("{0} :: {1}".format(k, v))
+    #
+    #soccercheck = wrap(soccercheck)
 
     def checksoccer(self, irc):
     #def checksoccer(self, irc, msg, args):
@@ -565,7 +569,7 @@ class SoccerLive(callbacks.Plugin):
         # we have games1. lets grab new games. we only try once.
         games2 = self._fetchgames()
         if not games2:  # if we don't have new, can't compare old so we bail.
-            self.log.error("checksoccer: fetching games2 failed.")
+            self.log.error("checksoccer: missing games2. bailing.")
             return
 
         # the main part. we compare games1 (old) and games2 (new), firing necessary events.
@@ -616,7 +620,7 @@ class SoccerLive(callbacks.Plugin):
                         if testdupe:  # returned True so we print it.
                             self._post(irc, v['league'], mstr)
                     # GAME GOES TO HT.
-                    if ((v['statustext'] != games2[k]['statustext']) and (games2[k]['statustext'] == 'HT')):
+                    if ((v['statustext'] != games2[k]['statustext']) and (games2[k]['statustext'] == 'Half')):
                         self.log.info("Should be firing HT in {0}".format(k))
                         # grab HT event and print.
                         mstr = self._ht(games2[k])
@@ -626,7 +630,7 @@ class SoccerLive(callbacks.Plugin):
                         if testdupe:  # returned True so we print it.
                             self._post(irc, v['league'], mstr)
                     # GAME RESUMES FROM HT.
-                    if ((v['statustext'] != games2[k]['statustext']) and (v['statustext'] == 'HT')):
+                    if ((v['statustext'] != games2[k]['statustext']) and (v['statustext'] == 'Half')):
                         self.log.info("Should be firing 2H kickoff from {0}".format(k))
                         # grab 2H KICKOFF event and print.
                         mstr = self._kickoff2(games2[k])
