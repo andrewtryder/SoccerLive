@@ -5,5 +5,4 @@ Supybot plugin for doing live scoring of Int'l Football / Futbol / Soccer in a c
 
 ----
 
-NOTES: I've had this for a bit but never released because there are bugs on the backend. I've also never tried
-with more than one client pulling from the scores backend. 
+Consider this another "beta" plugin that's in use but I'm sure has bugs.
