@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 ###
-# Copyright (c) 2013, spline
+# Copyright (c) 2013-2014, spline
 # All rights reserved.
 #
 #
@@ -18,6 +18,10 @@ import re, htmlentitydefs  # unescape.
 from base64 import b64decode  # b64.
 from calendar import timegm  # utc time.
 import datetime  # utc time.
+import pytz
+import datetime
+import time
+
 # extra supybot libs.
 import supybot.conf as conf
 import supybot.ircmsgs as ircmsgs
@@ -122,71 +126,72 @@ class SoccerLive(callbacks.Plugin):
     def _leagues(self, league=None):
         """Translates league name to their corresponding id."""
 
-        table = {
-                "UEFA Champions League":'2',
-                "World Cup":'4',
-                "French Ligue 1":'9',
-                "German Bundesliga":'10',
-                "Dutch Eredivisie":'11',
-                "Italian Serie A":'12',
-                "Portuguese Liga":'14',
-                "Spanish Primera División":'15',
-                "Swiss Super League":'17',
-                "Turkish Super Lig":'18',
-                "Major League Soccer":'19',
-                "USA Women's United Soccer Association":'20',
-                "Mexican Liga MX":'22',
-                "Barclays Premier League":'23',
-                "English League Championship":'24',
-                "English League One":'25',
-                "English League Two":'26',
-                "English Conference":'27',
-                "English FA Cup":'40',
-                "Capital One Cup":'41',
-                "Johnstone's Paint Trophy":'42',
-                "English FA Community Shield":'43',
-                "UEFA Cup":'44',
-                "Scottish Premier League":'45',
-                "International Friendly":'53',
-                "UEFA World Cup Qualifying":'54',
-                "European Championship Qualifying":'56',
-                "FIFA Confederations Cup":'57',
-                "CONCACAF Gold Cup":'59',
-                "Women's World Cup":'60',
-                "World Cup Qualifying":'61',
-                "World Cup Qualifying - AFC":'62',
-                "World Cup Qualifying - CAF":'63',
-                "World Cup Qualifying - CONCACAF":'64',
-                "World Cup Qualifying - CONMEBOL":'65',
-                "World Cup Qualifying - OFC":'66',
-                "World Cup Qualifying - UEFA":'67',
-                "Friendly":'68',
-                "U.S. Open Cup":'69',
-                "Women's International Friendly":'70',
-                "Men's Olympic Tournament":'71',
-                "Men's Olympic Qualifying Tournament":'72',
-                "World Youth Championship":'73',
-                "European Championship":'74',
-                "Intercontinental Cup":'75',
-                "African Nations Cup":'76',
-                "Spanish Copa del Rey":'80',
-                "Copa America":'83',
-                "Russian Premier League":'106',
-                "FIFA Club World Cup":'1932',
-                "German DFB Pokal":'2061',
-                "Italian Coppa Italia":'2192',
-                "CONCACAF Champions Cup":'2283',
-                "European Under-21 Championship":'2284',
-                "U-20 World Cup":'2285',
-                "World Series of Football":'2286',
-                "North American SuperLiga":'2287',
-                "U-17 World Cup":'2288',
-                "CONCACAF U23 Tournament":'2289',
-                "United Soccer Leagues":'2292',
-                "CONCACAF Champions League":'2298',
-                "UEFA Europa League":'2310',
-                "World Football Challenge":'2312'
-                }
+        table = {   "UEFA Champions League":'2',
+                    "World Cup":'4',
+                    "French Ligue 1":'9',
+                    "German Bundesliga":'10',
+                    "Dutch Eredivisie":'11',
+                    "Italian Serie A":'12',
+                    "Portuguese Liga":'14',
+                    "Spanish Primera División":'15',
+                    #"Swiss Super League":'17',
+                    #"Turkish Super Lig":'18',
+                    "Major League Soccer":'19',
+                    #"USA Women's United Soccer Association":'20',
+                    #"Mexican Liga MX":'22',
+                    "Barclays Premier League":'23',
+                    "English League Championship":'24',
+                    #"English League One":'25',
+                    #"English League Two":'26',
+                    #"English Conference":'27',
+                    #"English FA Cup":'40',
+                    #"Capital One Cup":'41',
+                    #"Johnstone's Paint Trophy":'42',
+                    #"English FA Community Shield":'43',
+                    "UEFA Cup":'44',
+                    #"Scottish Premier League":'45',
+                    "International Friendly":'53',
+                    "UEFA World Cup Qualifying":'54',
+                    "European Championship Qualifying":'56',
+                    "FIFA Confederations Cup":'57',
+                    "CONCACAF Gold Cup":'59',
+                    "Women's World Cup":'60',
+                    "World Cup Qualifying":'61',
+                    "World Cup Qualifying - AFC":'62',
+                    "World Cup Qualifying - CAF":'63',
+                    "World Cup Qualifying - CONCACAF":'64',
+                    "World Cup Qualifying - CONMEBOL":'65',
+                    "World Cup Qualifying - OFC":'66',
+                    "World Cup Qualifying - UEFA":'67',
+                    "Friendly":'68',
+                    #"U.S. Open Cup":'69',
+                    #"Women's International Friendly":'70',
+                    "Men's Olympic Tournament":'71',
+                    "Men's Olympic Qualifying Tournament":'72',
+                    #"World Youth Championship":'73',
+                    "European Championship":'74',
+                    #"Intercontinental Cup":'75',
+                    "African Nations Cup":'76',
+                    "Spanish Copa del Rey":'80',
+                    #"Copa America":'83',
+                    #"Russian Premier League":'106',
+                    "FIFA Club World Cup":'1932',
+                    "German DFB Pokal":'2061',
+                    #"Italian Coppa Italia":'2192',
+                    "CONCACAF Champions Cup":'2283',
+                    #"European Under-21 Championship":'2284',
+                    #"U-20 World Cup":'2285',
+                    #"World Series of Football":'2286',
+                    #"North American SuperLiga":'2287',
+                    #"U-17 World Cup":'2288',
+                    #"CONCACAF U23 Tournament":'2289',
+                    #"United Soccer Leagues":'2292',
+                    "CONCACAF Champions League":'2298',
+                    "UEFA Europa League":'2310',
+                    #"World Football Challenge":'2312'
+                    "Copa MX":'2500'
+                    }
+
         # now handle lookups
         if league:  # if we get a league.
             if league in table:  # see if it's in the table.
@@ -254,7 +259,7 @@ class SoccerLive(callbacks.Plugin):
                 dataset = pickle.load(datafile)
             finally:
                 datafile.close()
-        except IOError:
+        except IOError, e:
             self.log.error("_loadpickle :: ERROR :: loading file: {0}".format(e))
             return False
         # restore.
@@ -286,50 +291,118 @@ class SoccerLive(callbacks.Plugin):
         ttuple = datetime.datetime.utcnow().utctimetuple()
         return timegm(ttuple)
 
+    def _convertUTC(self, dtstring):
+        """Converts a DT string into UTC one."""
+    
+        try:
+            if dtstring.endswith("PT"):
+                naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p PT")  # Jul 17 2014 9:00 AM
+                local = pytz.timezone("US/Pacific")     
+            else:
+                naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p ET")  # Jul 17 2014 9:00 AM
+                local = pytz.timezone("US/Eastern")
+            local_dt = local.localize(naive, is_dst=None)
+            utc_dt = local_dt.astimezone(pytz.UTC) # convert from local->utc.
+            rtrstr = timegm(utc_dt.utctimetuple())  # return epoch seconds
+            rtrstr = int(rtrstr)
+            return rtrstr
+        except ValueError, e:  # they're showing times in GMT now..
+            self.log.info("ERROR: Trying to parse {0} in GMT :: {1}".format(dtstring, e))
+            return None
+
     ##################
     # MAIN INTERNALS #
     ##################
 
     def _fetchgames(self):
-        """Returns a list of games."""
+        """Main handler for fetching scores."""
 
-        url = b64decode('aHR0cDovL3dhcm0tc2F2YW5uYWgtNDI2Ny5oZXJva3VhcHAuY29tL3Njb3Jlcy5qc29u')
+        url = b64decode('aHR0cDovL20uZXNwbi5nby5jb20vc29jY2VyL3Njb3JlYm9hcmQ/JndqYj0=')
         html = self._httpget(url)
         if not html:
-            self.log.error("ERROR: _fetchgames :: Could not fetch {0}".format(url))
+            self.log.error("ERROR: _scorefetch: Could not open {0}".format(url))
             return None
-        # process json.
+        
+        # main loop.
         try:
-            tea = json.loads(html.decode('utf-8'))
-            # make sure we have games to process.
-            if tea['games'] == 0:
-                self.log.error("ERROR: _fetchgames :: length of games from host is 0")
-                return None
-            # we do so lets continue.
-            fixtures = tea['fixtures']
+            soup = BeautifulSoup(html, convertEntities=BeautifulSoup.HTML_ENTITIES, fromEncoding='utf-8')
+            # find our date
+            d = soup.find('a', attrs={'class':'inline'}).findNext('b').getText()
+            ds = d.split(' ')  # split on string.
+            dm, dn = ds[0], ds[1]  # individual.
+            dn = dn.zfill(2)  # pad.
+            yr = datetime.datetime.now().year  # current year.
+            ddiv = "{0} {1} {2}".format(dm, dn, yr)  # reattach.
+            # we need to pad the digit if single. Aug 4 -> Aug 04
+            # make sure we have it.
+            # now grab games.
+            gms = soup.findAll('a', attrs={'href':re.compile('.*gamecast.*')})        
             # dict for output.
-            games = {}
-            # iterate over each entry there. we do this to check leagues and also remap some fields so we can switch back
-            # to previous method if something blows up.
-            for (k, v) in fixtures.items():
-                lid = str(v['league']) # get league number.
-                # we now check the against our self.channels dict. it sends to filterleagues and returns
-                # True if we should filter (ie not put in) and False if we should NOT filter (ie keep it, we want it.)
-                if not self._filterleague(lid):  # False above (we want it)
-                    t = {}
-                    t['league'] = lid  # league id.
-                    t['status'] = v['status']  # 1, 2, 3 (int)
-                    t['gametime'] = v['gametime'] # already in UTC.
-                    t['statustext'] = v['statustext']  # FT, HT, '45 (min)
-                    t['awayscore'] = v['awayscore']  # awayscore (int).
-                    t['awayteam'] = self._unescape(v['awayteam']).encode('utf-8') # awayteam.
-                    t['homescore'] = v['homescore']  # homescore.
-                    t['hometeam'] =  self._unescape(v['hometeam']).encode('utf-8') # hometeam.
-                    games[k] = t
-            # now return the games dict.
-            return games
+            d = {}
+            # iterate over all games.
+            for gm in gms:
+                # <a href="gamecast?gameId=402840&amp;lang=EN&amp;wjb=">9:00 AM ET - Valencia vs AS Monaco</a>
+                gid = gm['href'].replace('gamecast?gameId=', '').replace('&lang=EN&wjb=', '')  # gamecast?gameId=398931&lang=EN&wjb=
+                # league.
+                l = gm.findPrevious('b')
+                if not l:
+                    continue
+                # now the match data itself.
+                l = l.getText().encode('utf-8')
+                # make sure we want the league.
+                leaguetitle = self._leagues(l)
+                if not leaguetitle:  # if not in the table, pass.
+                    continue
+                # match data.
+                m = gm.getText()
+                # we split at ' - ' to determine status.
+                m = m.split('(', 1)[0]  # strip TV, if present.
+                # ok, we're good. lets determine status.
+                if " vs " in m:  # match is later.
+                    vsplit = m.split(' - ', 2)
+                    status, statustext = 1, None
+                    gt = self._convertUTC("{0} {1}".format(ddiv, vsplit[0]))  # mix the date + time.
+                    # next, lets try to grab the hometeam.
+                    parts = re.split("^(.*?)\svs\s(.*?)$", vsplit[1])
+                    if parts:
+                        hometeam, awayteam, homescore, awayscore = parts[1], parts[2], 0, 0
+                    else:
+                        logging.info("ERROR: cannot parse 'vs' string for regex: {0}".format(vsplit[1]))  # log cannot parse.
+                        hometeam, homescore, awayteam, awayscore = None, None, None, None
+                else:  # game is ongoing, PPD, Abandoned or Final.
+                    parts = re.split("^(.*?)\s-\s(.*?)\s(\d+|P)-(\d+|P)\s(.*?)$", m)
+                    if len(parts) is not 7:
+                        print "Error trying to regex {0}".format(m)
+                    else:
+                        # now determine status
+                        if ((parts[1].startswith("Post")) or (parts[1].startswith("Abandoned")) or (parts[1].startswith("Cancel"))):
+                            continue  # lets skip for now but we're not sure if this will work or not.
+                        elif (parts[1].startswith("Final")):
+                            status = 3
+                        else:
+                            status = 2
+                        # copy the text of status into statustext
+                        statustext = parts[1]
+                        gt = None
+                        hometeam = parts[2]
+                        awayteam = parts[5]
+                        homescore = int(parts[3])
+                        awayscore = int(parts[4])
+                # construct the dict so we may return.
+                d[gid] = {  'status': status,  # 1, 2, 3 (int)
+                            'gametime': gt,  # epoch int
+                            'statustext': statustext,  # FT, HT, '45 (min)
+                            'hometeam': hometeam.strip().encode('utf-8'),
+                            'homescore': homescore,
+                            'awayteam': awayteam.strip().encode('utf-8'),
+                            'awayscore': awayscore,
+                            'league': leaguetitle }  # league id.
+    
+            # prepare for returning output.
+            tmp = d  # container for output.
+            return tmp
         except Exception, e:
-            self.log.error("_fetchgames: ERROR (exception) :: {0}".format(e))
+            self.log.error("_scorefetch: ERROR (exception) :: {0}".format(e))
             return None
 
     def _gameevent(self, gid, golnum):
@@ -368,38 +441,6 @@ class SoccerLive(callbacks.Plugin):
         txt = txt.replace('<b>', '').replace('</b>', '').replace('<br>', ' ')
         # return unicode.
         return txt.encode('utf-8')
-
-    def _fixturefinal(self, gameid):
-        """Grab final event stats."""
-
-        url = b64decode('aHR0cDovL2VzcG5mYy5jb20vdXMvZW4vZ2FtZWNhc3Q=') + '/%s/gamecast.html' % str(gameid)
-        headers = {"User-Agent":"Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:17.0) Gecko/20100101 Firefox/17.0"}
-        html = self._httpget(url, h=headers)
-        if not html:
-            self.log.error("ERROR: _gameevent: Could not open {0}".format(url))
-            return None
-        # just throw this in one giant try/except block because I have no clue if it works.
-        try:
-            soup = BeautifulSoup(html)
-            h1 = soup.find('h1', text="Match Stats")
-            section = h1.findParent('section', attrs={'class':'mod-container'})
-            # put stats into a dict, key = hometeam/awayteam.
-            gamestats = {}
-            # iterate over each and find stats.
-            for team in ['home', 'away']:
-                gamestats.setdefault(team+'team', {})  # setup the dict and grab based on stat.
-                for stat in ['shots', 'possession', 'yellow-cards', 'red-cards', 'saves']:
-                    var = section.find('td', attrs={'id':'%s-%s' % (team, stat)}).getText()
-                    gamestats[team+'team'][stat] = var
-            # sanity check.
-            if (gamestats['hometeam']['possession'] in ('0%', '', '-')):
-                self.log.error("_fixturefinal: ERROR: errant value in possession on match {0}. Not returning.".format(gameid))
-                return None
-            # otherwise, return the dictionary.
-            return gamestats
-        except Exception, e:
-            self.log.error("_fixturefinal: ERROR grabbing {0} :: {1}".format(gameid, e))
-            return None
 
     ####################
     # PUBLIC FUNCTIONS #
@@ -541,6 +582,64 @@ class SoccerLive(callbacks.Plugin):
     #
     #soccercheck = wrap(soccercheck)
 
+    def socceron(self, irc, msg, args, channel):
+        """
+        Re-enable soccer updates in channel.
+        Must be enabled by an op in the channel scores are already enabled for.
+        """
+
+        # channel
+        channel = channel.lower()
+        # check if op.
+        if not irc.state.channels[channel].isOp(msg.nick):
+            irc.reply("ERROR: You must be an op in this channel for this command to work.")
+            return
+        # check if channel is already on.
+        if channel in self.channels:
+            irc.reply("ERROR: {0} is already enabled for soccer updates.".format(channel))
+        # we're here if it's not. let's re-add whatever we have saved.
+        # most of this is from _loadchannels
+        try:
+            datafile = open(conf.supybot.directories.data.dirize(self.name()+".pickle"), 'rb')
+            try:
+                dataset = pickle.load(datafile)
+            finally:
+                datafile.close()
+        except IOError, e:
+            irc.reply("ERROR: I could not open the soccer pickle to restore :: {0}".format(e))
+            return
+        # now check if channels is in the dataset from the pickle.
+        if channel in dataset['channels']:  # it is. we're good.
+            self.channels[channel] = dataset['channels'][channel]  # restore it.
+            irc.reply("I have successfully restored updates to: {0}".format(channel))
+        else:
+            irc.reply("ERROR: {0} is not in the saved channel list. Please use soccerchannel to add it.".format(channel))
+
+    socceron = wrap(socceron, [('channel')])
+
+    def socceroff(self, irc, msg, args, channel):
+        """
+        Disable soccer scoring updates in a channel.
+        Must be issued by an op in a channel it is enabled for.
+        """
+
+        # channel
+        channel = channel.lower()
+        # check if op.
+        if not irc.state.channels[channel].isOp(msg.nick):
+            irc.reply("ERROR: You must be an op in this channel for this command to work.")
+            return
+        # check if channel is already on.
+        if channel not in self.channels:
+            irc.reply("ERROR: {0} is not in self.channels. I can't disable updates for a channel I don't update in.".format(channel))
+            return
+        else:  # channel is in the dict so lets do a temp disable by deleting it.
+            del self.channels[channel]
+            irc.reply("I have successfully disabled soccer updates in {0}".format(channel))
+
+    socceroff = wrap(socceroff, [('channel')])
+
+
     def checksoccer(self, irc):
     #def checksoccer(self, irc, msg, args):
         """
@@ -574,6 +673,7 @@ class SoccerLive(callbacks.Plugin):
 
         # the main part. we compare games1 (old) and games2 (new), firing necessary events.
         for (k, v) in games1.items():  # iterate through self.games.
+            #self.log.info("k: {0} v: {1}".format(k, v))
             if k in games2:  # match up keys because we don't know the frequency of the games/list changing.
                 # HANDLE KICKOFF.
                 if ((v['status'] == 1) and (games2[k]['status'] == 2)):  # 1->2 = kickoff.
@@ -649,19 +749,6 @@ class SoccerLive(callbacks.Plugin):
                     testdupe = self._dupedict(k, mstr)  # dupetest.
                     if testdupe:  # returned True so we print it.
                         self._post(irc, v['league'], mstr)
-                    # now lets see if we can get fixture final stats.
-                    #fixturefinal = self._fixturefinal(k)
-                    #if not fixturefinal:
-                    #    self.log.info("checksoccer: I could not get fixturefinal for {0}".format(k))
-                    #else:  # we got it.
-                        # FFITEMS: {'awayteam': {'possession': u'58%', 'red-cards': u'0', 'saves': u'1', 'yellow-cards': u'3', 'shots': u'12(6)'},
-                        # 'hometeam': {'possession': u'42%', 'red-cards': u'0', 'saves': u'5', 'yellow-cards': u'0', 'shots': u'8(2)'}}
-                        #for (ffk, ffv) in fixturefinal.items():  # iterate over the keys
-                        #    ffk = v[ffk]  # hometeam grabs the key from the value. format below
-                        #    ffstr = "{0} :: {1}".format(ffk, " :: ".join([iv + ": " + str(ik) for (iv, ik) in ffv.items()]))
-                        #    testdupe = self._dupedict(k, ffstr)  # dupetest.
-                        #    if testdupe:  # returned True so we print it.
-                        #        self._post(irc, v['league'], ffstr)
                     # now that we're done printing the final part of the game, delete the key so we can't print more.
                     if k in self.dupedict:
                         self.log.info("FT DELETING {0} from dupedict".format(k))
