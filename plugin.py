@@ -313,7 +313,7 @@ class SoccerLive(callbacks.Plugin):
             rtrstr = timegm(utc_dt.utctimetuple())  # return epoch seconds
             rtrstr = int(rtrstr)
             return rtrstr
-        except ValueError, e:  # they're showing times in GMT now..
+        except Exception, e:  # they're showing times in GMT now..
             self.log.info("ERROR: Trying to parse {0} into GMT :: {1}".format(dtstring, e))
             return None
 
