@@ -296,18 +296,28 @@ class SoccerLive(callbacks.Plugin):
     
         try:
             if dtstring.endswith("PT"):
-                naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p PT")  # Jul 17 2014 9:00 AM
+                naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p PT")  
                 local = pytz.timezone("US/Pacific")     
-            else:
-                naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p ET")  # Jul 17 2014 9:00 AM
+            elif dtstring.endswith("ET"):
+                naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p ET")  
                 local = pytz.timezone("US/Eastern")
+            elif dtstring.endswith("PM"):
+                naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p PM")
+                local = pytz.timezone("UTC")
+            elif dtstring.endswith("AM"):
+                naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p AM")
+                local = pytz.timezone("UTC")
+            else:  # can't figure it out.
+                self.log.info("ERROR: Trying to parse {0} into GMT".format(dtstring))
+                return None
+            # here we go.
             local_dt = local.localize(naive, is_dst=None)
             utc_dt = local_dt.astimezone(pytz.UTC) # convert from local->utc.
             rtrstr = timegm(utc_dt.utctimetuple())  # return epoch seconds
             rtrstr = int(rtrstr)
             return rtrstr
         except ValueError, e:  # they're showing times in GMT now..
-            self.log.info("ERROR: Trying to parse {0} in GMT :: {1}".format(dtstring, e))
+            self.log.info("ERROR: Trying to parse {0} into GMT :: {1}".format(dtstring, e))
             return None
 
     ##################
