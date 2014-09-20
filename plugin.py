@@ -132,6 +132,7 @@ class SoccerLive(callbacks.Plugin):
                     "German Bundesliga":'10',
                     "Dutch Eredivisie":'11',
                     "Italian Serie A":'12',
+                    'Italian Serie B':'13',
                     "Portuguese Liga":'14',
                     "Spanish Primera División":'15',
                     #"Swiss Super League":'17',
