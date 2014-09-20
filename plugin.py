@@ -302,10 +302,10 @@ class SoccerLive(callbacks.Plugin):
                 naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p ET")  
                 local = pytz.timezone("US/Eastern")
             elif dtstring.endswith("PM"):
-                naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p PM")
+                naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M PM")
                 local = pytz.timezone("UTC")
             elif dtstring.endswith("AM"):
-                naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p AM")
+                naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M AM")
                 local = pytz.timezone("UTC")
             else:  # can't figure it out.
                 self.log.info("ERROR: Trying to parse {0} into GMT".format(dtstring))
