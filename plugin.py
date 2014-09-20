@@ -369,6 +369,9 @@ class SoccerLive(callbacks.Plugin):
                     vsplit = m.split(' - ', 2)
                     status, statustext = 1, None
                     gt = self._convertUTC("{0} {1}".format(ddiv, vsplit[0]))  # mix the date + time.
+                    if not gt:  # lets skip if we can't parse.
+                        self.log.info("ERROR: I could not _convertUTC: {0} - skipping: {1}".format(gt, m))
+                        continue
                     # next, lets try to grab the hometeam.
                     parts = re.split("^(.*?)\svs\s(.*?)$", vsplit[1])
                     if parts:
