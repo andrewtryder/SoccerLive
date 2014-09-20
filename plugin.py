@@ -302,6 +302,8 @@ class SoccerLive(callbacks.Plugin):
                 naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p ET")  
                 local = pytz.timezone("US/Eastern")
             elif dtstring.endswith("AM") or dtstring.endswith("PM"):
+                if '/' in dstring:  # bail if we see /.
+                    return None
                 naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p")
                 local = pytz.timezone("UTC")
             else:  # can't figure it out.
