@@ -298,15 +298,30 @@ class SoccerLive(callbacks.Plugin):
         try:
             if dtstring.endswith("PT"):
                 naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p PT")  
-                local = pytz.timezone("US/Pacific")     
+                local = pytz.timezone("US/Pacific")
+            elif dtstring.endswith("MT"):
+                naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p MT")  
+                local = pytz.timezone("US/Mountain")
+            elif dtstring.endswith("CT"):
+                naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p CT")  
+                local = pytz.timezone("US/Central")
             elif dtstring.endswith("ET"):
                 naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p ET")  
                 local = pytz.timezone("US/Eastern")
-            elif dtstring.endswith("AM") or dtstring.endswith("PM"):
-                if '/' in dtstring:  # bail if we see /.
-                    return None
-                naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p")
-                local = pytz.timezone("UTC")
+            elif dtstring.endswith("AM") or dtstring.endswith("PM"):  # GMT?
+                if '/' in dtstring:  # 9/21 12:30 AM <- need to zeropad date.
+                    # first, split on first space. we assume data is good.
+                    d = dtstring.split(' ', 1)  # ['9/21', '12:30 AM']
+                    ds = d[0].split('/')  # ['9', '21']
+                    ds[0], ds[1] = ds[0].zfill(2), ds[1].zfill(1)  # zeropad ds[0] and ds[1]
+                    # now lets reattach it all back together.
+                    dtstring = "{0}/{1} {2}".format(ds[0], ds[1], d[1])  # 9/21 12:30 AM -> 09/21 12:30 AM
+                    # try again...
+                    naive = datetime.datetime.strptime(dtstring, "%m/%d %I:%M %p")
+                    local = pytz.timezone("UTC")
+                else:  # same day.
+                    naive = datetime.datetime.strptime(dtstring, "%b %d %Y %I:%M %p")
+                    local = pytz.timezone("UTC")
             else:  # can't figure it out.
                 self.log.info("ERROR: Trying to parse {0} into GMT".format(dtstring))
                 return None
@@ -381,7 +396,8 @@ class SoccerLive(callbacks.Plugin):
                         hometeam, awayteam, homescore, awayscore = parts[1], parts[2], 0, 0
                     else:
                         logging.info("ERROR: cannot parse 'vs' string for regex: {0}".format(vsplit[1]))  # log cannot parse.
-                        hometeam, homescore, awayteam, awayscore = None, None, None, None
+                        # hometeam, homescore, awayteam, awayscore = None, None, None, None
+                        continue
                 else:  # game is ongoing, PPD, Abandoned or Final.
                     parts = re.split("^(.*?)\s-\s(.*?)\s(\d+|P)-(\d+|P)\s(.*?)$", m)
                     if len(parts) is not 7:
@@ -460,7 +476,7 @@ class SoccerLive(callbacks.Plugin):
     ####################
 
     def soccerchannel(self, irc, msg, args, op, optchannel, optarg):
-        """<add|list|del> <#channel> <ALL|league>
+        """<add|list|del> <#channel> <league>
 
         Add or delete league or tournament from a specific channel's output.
         Can only specify one at a time and you must use the league's name with proper capitalization. See leagues.
