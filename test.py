@@ -7,11 +7,20 @@
 
 from supybot.test import *
 
-class SoccerLiveTestCase(PluginTestCase):
+class SoccerLiveTestCase(ChannelPluginTestCase):
     plugins = ('SoccerLive',)
 
+#    def setUp(self):
+#        ChannelPluginTestCase.setUp(self)
+#        self.prefix = 'test!test@test'
+#        self.nick = 'test'
+#        self.irc.feedMsg(ircmsgs.join('#test', prefix='test!test@host'))
+#        self.irc.feedMsg(ircmsgs.privmsg(self.irc.nick, ''))
+
     def testSoccerLive(self):
-        self.assertSnarfResponse('join #test', 'The operation succeeded.')
+        self.assertRegexp('soccerchannel add #test World Cup', 'I have added World Cup into #test')
+        self.assertRegexp('soccerchannel del #test World Cup', 'I have successfully removed World Cup from #test')
+
 
     
 
