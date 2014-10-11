@@ -1,3 +1,3 @@
 git+https://github.com/ProgVal/Limnoria.git
 pytz==2014.7
-BeautifulSoup=3.2.1
+BeautifulSoup==3.2.1
